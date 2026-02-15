@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import "dotenv/config";
 import { prisma } from "./exports/prisma";
-import type { get } from "node:http";
+
 
 
 const commands = {
