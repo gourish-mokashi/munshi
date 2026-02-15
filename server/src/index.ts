@@ -4,6 +4,7 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth.js";
 import productRouter from "./routes/productRoutes.js";
 import stockRouter from "./routes/stockRoutes.js";
+import analyticsRouter from "./routes/analyticsRoutes.js";
 
 const app: express.Application = express();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 
 app.use("/products", productRouter);
 app.use("/stock", stockRouter);
+app.use("/analytics", analyticsRouter);
 
 app.get("/health", (_, res) => {
   res.send("OK");

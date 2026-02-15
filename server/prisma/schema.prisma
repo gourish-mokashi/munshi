@@ -8,6 +8,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PaymentMethod {
+  CASH
+  CREDIT
+  UPI
+}
+
 model ProductDetails {
   id            String   @id @default(uuid())
   name          String
@@ -18,6 +24,7 @@ model ProductDetails {
   updatedAt     DateTime @updatedAt
   userId        String
   productStocks CurrentStock[]
+  transactionItems TransactionItem[]  
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -34,6 +41,32 @@ model CurrentStock {
   @@index([productId])
 }
 
+model TransactionItem {
+  id            String         @id @default(uuid())
+  productId     String
+  quantity      Int
+  transactionId String
+  userId        String
+  User          User           @relation(fields: [userId], references: [id])
+  product       ProductDetails @relation(fields: [productId], references: [id])
+  transaction   Transaction    @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([productId])
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  items         TransactionItem[]
+  totalAmount   Float
+  userId        String
+  User          User              @relation(fields: [userId], references: [id])
+  paymentMethod PaymentMethod
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
 
 model User {
   id            String    @id
@@ -47,6 +80,8 @@ model User {
   accounts      Account[]
   productDetails ProductDetails[]
   currentStocks  CurrentStock[]
+  transactionItems TransactionItem[]
+  transactions   Transaction[]
 
   @@unique([email])
   @@map("user")
