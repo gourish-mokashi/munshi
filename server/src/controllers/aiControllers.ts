@@ -4,7 +4,7 @@ import { prisma } from "../exports/prisma";
 import fs from "fs";
 import path from "path";
 import { sarvamClient } from "../exports/sarvam";
-import removeMd from "remove-markdown";
+import { removeSpecialCharacters } from "../lib/stripSpecialCharacters";
 
 export async function getAIResponse(req: Request, res: Response) {
     try {
@@ -66,7 +66,7 @@ export async function getAIResponseWithAudio(req: Request, res: Response) {
         fs.unlinkSync(tempPath);
 
         const response = await getAgentResponse(translitResponse.transcript, userId);
-        const cleanResponseForAudio = removeMd(response);
+        const cleanResponseForAudio = removeSpecialCharacters(response);
 
         const audioResponse = await sarvamClient.textToSpeech.convert({
             text: cleanResponseForAudio,
