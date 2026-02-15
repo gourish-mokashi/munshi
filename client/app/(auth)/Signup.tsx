@@ -1,5 +1,6 @@
-import { ScrollView, View, Text } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { SignUpForm } from '@/components/sign-up-form'
+import AnimatedAvatar from '@/components/AnimatedAvatar'
 
 const Register = () => {
   return (
@@ -7,7 +8,8 @@ const Register = () => {
       keyboardShouldPersistTaps="handled"
       contentContainerClassName="bg-background flex-1 items-center justify-center p-4"
       keyboardDismissMode="interactive">
-      <View className="w-full max-w-sm">
+      <View className="w-full max-w-sm items-center gap-6">
+        <AnimatedAvatar size={72} />
         <SignUpForm />
       </View>
     </ScrollView>

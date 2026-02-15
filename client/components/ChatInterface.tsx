@@ -15,16 +15,12 @@ import { MotiView, AnimatePresence } from 'moti';
 import Markdown from 'react-native-markdown-display';
 import { BlurView } from 'expo-blur';
 import { Input } from '@/components/ui/input';
-import {
-  XIcon,
-  PaperPlaneRightIcon,
-  CameraIcon,
-  ChatCircleDotsIcon,
-} from 'phosphor-react-native';
+import { XIcon, PaperPlaneRightIcon, ChatCircleDotsIcon } from 'phosphor-react-native';
 import { THEME } from '@/lib/theme';
 import { MicrophoneIcon, StopIcon } from 'phosphor-react-native';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { playBase64Wav } from '@/lib/playBase64Audio';
+import { makeAuthenticatedRequest } from '@/lib/authenticatedRequest';
 
 const { width, height } = Dimensions.get('window');
 const BACKEND_URL = process.env.EXPO_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -52,7 +48,7 @@ const TypingIndicator = ({ mode }: { mode: 'light' | 'dark' }) => {
   return (
     <View className="mb-3 w-full flex-row justify-start">
       <View
-        className="rounded-t-2xl rounded-br-2xl rounded-bl-sm px-5 py-4 flex-row items-center gap-1.5"
+        className="flex-row items-center gap-1.5 rounded-t-2xl rounded-br-2xl rounded-bl-sm px-5 py-4"
         style={{ backgroundColor: THEME[mode].muted }}>
         {[0, 1, 2].map((i) => (
           <MotiView
@@ -93,61 +89,52 @@ const ChatInterface = ({ open, onClose, onOpenScan }: ChatInterfaceProps) => {
   const colorscheme = useColorScheme();
   const mode: 'light' | 'dark' = colorscheme === 'dark' ? 'dark' : 'light';
 
-const { isRecording, startRecording, stopRecording } = useVoiceRecorder();
+  const { isRecording, startRecording, stopRecording } = useVoiceRecorder();
 
-const handleMicToggle = async () => {
-  if (isRecording) {
-    const base64 = await stopRecording();
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      const base64 = await stopRecording();
 
-    if (!base64) return;
+      if (!base64) return;
 
-    setSending(true);
+      setSending(true);
 
-    const response = await fetch(`${BACKEND_URL}/ai/audio/response`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      const result = await makeAuthenticatedRequest('/ai/audio/response', {
         audio: base64,
-      }),
-    });
+      });
 
-    const result = await response.json();
+      if (result.success) {
+        setInputText(result.data.transcript);
+        const userMessageAudio: Message = {
+          id: Date.now(),
+          type: 'user',
+          text: result.data.transcript,
+          sender: 'USER',
+        };
+        setMessages((prev) => [...prev, userMessageAudio]);
 
-    if (result.success) {
-      setInputText(result.data.transcript);
-      const userMessageAudio: Message = {
-        id: Date.now(),
-        type: 'user',
-        text: result.data.transcript,
-        sender: 'USER',
-      };
-      setMessages((prev) => [...prev, userMessageAudio]);
+        const aiMessageAudio: Message = {
+          id: Date.now() + 1,
+          type: 'ai',
+          text: result.data.response,
+          sender: 'AGENT',
+        };
+        setMessages((prev) => [...prev, aiMessageAudio]);
 
-      const aiMessageAudio: Message = {
-        id: Date.now() + 1,
-        type: 'ai',
-        text: result.data.response,
-        sender: 'AGENT',
-      };
-      setMessages((prev) => [...prev, aiMessageAudio]);
-
+        setSending(false);
+        setInputText('');
+        if (result.audio) {
+          playBase64Wav(result.audio);
+        } else {
+          console.warn('No audio response received');
+        }
+      }
       setSending(false);
+    } else {
       setInputText('');
-      if (result.audio) {
-        playBase64Wav(result.audio);
-      }
-      else {
-        console.warn("No audio response received");
-      }
+      startRecording();
     }
-    setSending(false);
-  } else {
-    setInputText("");
-    startRecording();
-  }
-};
+  };
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -178,19 +165,14 @@ const handleMicToggle = async () => {
       } else {
         setLoading(true);
       }
-      
-      const url = new URL(`${BACKEND_URL}/ai/history`);
-      url.searchParams.append('limit', '20');
-      if (cursorDate) {
-        url.searchParams.append('cursor', cursorDate);
-      }
-      
-      const response = await fetch(url.toString());
-      const result = await response.json();
-      
+
+      const result = await makeAuthenticatedRequest(
+        `/ai/history${cursorDate ? `?cursor=${cursorDate}` : ''}`
+      );
+
       if (result.success && result.data) {
         const formattedMessages: Message[] = [];
-        
+
         // Process chat history (each chat contains multiple messages)
         result.data.forEach((chat: any) => {
           if (chat.messages) {
@@ -204,7 +186,7 @@ const handleMicToggle = async () => {
             });
           }
         });
-        
+
         if (cursorDate) {
           // Append older messages when loading more
           setMessages((prev) => [...formattedMessages, ...prev]);
@@ -212,7 +194,7 @@ const handleMicToggle = async () => {
           // Set initial messages
           setMessages(formattedMessages);
         }
-        
+
         setCursor(result.nextCursor);
         setHasMore(!!result.nextCursor);
       }
@@ -241,12 +223,10 @@ const handleMicToggle = async () => {
     setSending(true);
 
     try {
-      const url = new URL(`${BACKEND_URL}/ai/response`);
-      url.searchParams.append('input', userMessage.text);
-      
-      const response = await fetch(url.toString());
-      const result = await response.json();
-      
+      const result = await makeAuthenticatedRequest(
+        '/ai/response?input=' + encodeURIComponent(userMessage.text)
+      );
+
       if (result.success && result.data) {
         const aiMessage: Message = {
           id: Date.now() + 1,
@@ -276,7 +256,7 @@ const handleMicToggle = async () => {
       <View className="flex-1 px-1 pt-4">
         {/* Greeting */}
         <Text
-          className="text-[64px] tracking-[-0.4rem] font-normal mb-6"
+          className="mb-6 text-[64px] font-normal tracking-[-0.4rem]"
           style={{ color: THEME[mode].background }}>
           Hi binit,{`\n`}How can I help{`\n`}you today?
         </Text>
@@ -289,19 +269,13 @@ const handleMicToggle = async () => {
               onClose();
               onOpenScan?.();
             }}
-            className="flex-1 rounded-2xl border border-background p-4 justify-between"
+            className="border-background flex-1 justify-between rounded-2xl border p-4"
             style={{
-              backgroundColor:
-                mode === 'dark' ? 'rgba(96,165,250,0.10)' : 'rgba(202,228,255,0.55)',
+              backgroundColor: mode === 'dark' ? 'rgba(96,165,250,0.10)' : 'rgba(202,228,255,0.55)',
               minHeight: 130,
             }}>
-            <CameraIcon
-              size={32}
-              color={THEME[mode].background}
-              weight="regular"
-            />
             <Text
-              className="text-base font-semibold mt-2"
+              className="mt-2 text-base font-semibold"
               style={{ color: THEME[mode].background }}>
               Scan
             </Text>
@@ -312,19 +286,14 @@ const handleMicToggle = async () => {
             onPress={() => {
               setTimeout(() => inputRef.current?.focus(), 300);
             }}
-            className="flex-1 rounded-2xl border border-background p-4 justify-between"
+            className="border-background flex-1 justify-between rounded-2xl border p-4"
             style={{
-              backgroundColor:
-                mode === 'dark' ? 'rgba(250,204,21,0.10)' : 'rgba(254,243,199,0.70)',
+              backgroundColor: mode === 'dark' ? 'rgba(250,204,21,0.10)' : 'rgba(254,243,199,0.70)',
               minHeight: 130,
             }}>
-            <ChatCircleDotsIcon
-              size={32}
-              color={THEME[mode].background}
-              weight="regular"
-            />
+            <ChatCircleDotsIcon size={32} color={THEME[mode].background} weight="regular" />
             <Text
-              className="text-base font-semibold mt-2"
+              className="mt-2 text-base font-semibold"
               style={{ color: THEME[mode].background }}>
               Ask AI
             </Text>
@@ -435,14 +404,12 @@ const handleMicToggle = async () => {
         <View
           className={`max-w-[80%] px-4 py-3 ${
             isUser
-              ? 'rounded-t-2xl rounded-bl-2xl rounded-br-sm bg-blue-500'
+              ? 'rounded-t-2xl rounded-br-sm rounded-bl-2xl bg-blue-500'
               : 'rounded-t-2xl rounded-br-2xl rounded-bl-sm'
           }`}
           style={!isUser ? { backgroundColor: THEME[mode].muted } : undefined}>
           {isUser ? (
-            <Text
-              className="text-sm leading-5"
-              style={{ color: '#fff' }}>
+            <Text className="text-sm leading-5" style={{ color: '#fff' }}>
               {message.text}
             </Text>
           ) : (
@@ -478,10 +445,7 @@ const handleMicToggle = async () => {
                 experimentalBlurMethod="dimezisBlurView"
                 style={{
                   flex: 1,
-                  backgroundColor:
-                    mode === 'dark'
-                      ? 'rgba(0, 0, 0, 0.4)'
-                      : 'rgba(0, 0, 0, 0.15)',
+                  backgroundColor: mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.15)',
                 }}
               />
             </Pressable>
@@ -516,7 +480,6 @@ const handleMicToggle = async () => {
             transition={{ type: 'timing', duration: 400 }}
             style={{ position: 'absolute', overflow: 'hidden', zIndex: 10 }}
             className="bg-foreground">
-
             {/* Chat content */}
             <MotiView
               from={{ opacity: 0, translateY: 20 }}
@@ -541,7 +504,7 @@ const handleMicToggle = async () => {
                     justifyContent: 'space-between',
                   }}>
                   <Text
-                    className="tracking-tighter text-xl font-playfair-bold-italic"
+                    className="font-playfair-bold-italic text-xl tracking-tighter"
                     style={{ color: THEME[mode].background }}>
                     assistant
                   </Text>
@@ -556,9 +519,7 @@ const handleMicToggle = async () => {
                   className="flex-1 px-4"
                   contentContainerStyle={{ paddingTop: 52, paddingBottom: 72 }}
                   showsVerticalScrollIndicator={false}
-                  onContentSizeChange={() =>
-                    scrollViewRef.current?.scrollToEnd({ animated: true })
-                  }
+                  onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                   onScroll={(e) => {
                     const contentOffsetY = e.nativeEvent.contentOffset.y;
                     if (contentOffsetY < 100 && hasMore && !loadingMore) {
@@ -577,9 +538,7 @@ const handleMicToggle = async () => {
                           <ActivityIndicator size="small" />
                         </View>
                       )}
-                      {messages.length === 0
-                        ? renderEmptyState()
-                        : messages.map(renderMessage)}
+                      {messages.length === 0 ? renderEmptyState() : messages.map(renderMessage)}
                       {sending && <TypingIndicator mode={mode} />}
                     </>
                   )}
@@ -596,10 +555,10 @@ const handleMicToggle = async () => {
                     paddingHorizontal: 16,
                     paddingVertical: 10,
                   }}>
-                  <View className="relative w-full flex-row items-center mb-2">
+                  <View className="relative mb-2 w-full flex-row items-center">
                     <Input
                       ref={inputRef}
-                      placeholder={isRecording ? 'Listening...' : 'Ask or search for anything...'}
+                      placeholder={isRecording ? 'Sunn Raha hu mai...' : 'Kuch Pucho...'}
                       placeholderTextColor={isRecording ? '#ef4444' : THEME[mode].mutedForeground}
                       style={{ backgroundColor: THEME[mode].input }}
                       className="h-12 flex-1 rounded-xl px-4 pr-32"
@@ -621,15 +580,7 @@ const handleMicToggle = async () => {
                           <MicrophoneIcon size={20} color="#fff" weight="bold" />
                         )}
                       </Pressable>
-                      {/* Camera */}
-                      <Pressable
-                        onPress={() => {
-                          onClose();
-                          onOpenScan?.();
-                        }}
-                        className="rounded-lg bg-blue-500 p-2">
-                        <CameraIcon size={20} color="#fff" weight="bold" />
-                      </Pressable>
+                  
                       {/* Send */}
                       <Pressable
                         onPress={handleSend}
@@ -646,9 +597,9 @@ const handleMicToggle = async () => {
                 </View>
 
                 {/* Gradient overlays */}
-                <View className="absolute flex flex-col justify-between h-full w-full pointer-events-none">
-                  <View className="w-full h-12 bg-linear-to-b from-foreground via-foreground to-transparent" />
-                  <View className="w-full h-16 bg-linear-to-t from-foreground via-foreground to-transparent" />
+                <View className="pointer-events-none absolute flex h-full w-full flex-col justify-between">
+                  <View className="from-foreground via-foreground h-12 w-full bg-linear-to-b to-transparent" />
+                  <View className="from-foreground via-foreground h-16 w-full bg-linear-to-t to-transparent" />
                 </View>
               </View>
             </MotiView>

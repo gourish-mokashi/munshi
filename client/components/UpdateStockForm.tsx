@@ -17,6 +17,7 @@ import {
   Check,
   MagnifyingGlass,
 } from 'phosphor-react-native';
+import { makeAuthenticatedRequest } from '@/lib/authenticatedRequest';
 
 interface Product {
   id: string;
@@ -45,8 +46,8 @@ const UpdateStockForm = ({ refreshKey }: UpdateStockFormProps) => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${process.env.EXPO_PUBLIC_BASE_URL}/stock/`);
-      const result = await res.json();
+
+      const result = await makeAuthenticatedRequest("/stock/"); 
 
       if (result.success && result.data) {
         const mapped: Product[] = result.data.map(
@@ -78,16 +79,10 @@ const UpdateStockForm = ({ refreshKey }: UpdateStockFormProps) => {
 
     try {
       setSubmitting(true);
-      const res = await fetch(`${process.env.EXPO_PUBLIC_BASE_URL}/stock/update/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: selectedProduct.id,
-          quantity: newTotal,
-        }),
+      const result = await makeAuthenticatedRequest('/stock/update/', {
+        productId: selectedProduct.id,
+        quantity: newTotal,
       });
-
-      const result = await res.json();
 
       if (result.success) {
         setSuccess(true);

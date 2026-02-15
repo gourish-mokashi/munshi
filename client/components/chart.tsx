@@ -4,6 +4,7 @@ import { LineChart } from 'react-native-gifted-charts';
 import { ActivityIndicator } from 'react-native';
 import { SalesData, PeriodType, formatCurrency, getYAxisLabels } from '@/constants/chartData';
 import { TrendUpIcon, TrendDownIcon } from 'phosphor-react-native';
+import { makeAuthenticatedRequest } from '@/lib/authenticatedRequest';
 
 const periods: { key: PeriodType; label: string }[] = [
   { key: 'weekly', label: 'Weekly' },
@@ -48,10 +49,7 @@ const SalesChart = () => {
   const fetchChartData = async (period: PeriodType) => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_BASE_URL}/analytics/sales?filter=${period}`
-      );
-      const result = await response.json();
+      const result = await makeAuthenticatedRequest("/analytics/sales?filter=" + period);
 
       if (result.success && result.data) {
         const sanitizedData: SalesData = {

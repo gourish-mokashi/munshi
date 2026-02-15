@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Package, CurrencyInr, CalendarBlank, Tag, Check } from 'phosphor-react-native';
+import { makeAuthenticatedRequest } from '@/lib/authenticatedRequest';
 
 interface AddProductFormProps {
   onSuccess?: () => void;
@@ -48,29 +49,19 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
 
     try {
       setSubmitting(true);
-      const res = await fetch(`${process.env.EXPO_PUBLIC_BASE_URL}/products/new/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          purchasePrice: parseFloat(purchasePrice),
-          sellingPrice: parseFloat(sellingPrice),
-          expiryDate: new Date(expiryDate).toISOString(),
-        }),
+      const result = await makeAuthenticatedRequest('/products/add/', {
+        name,
+        purchasePrice: Number(purchasePrice),
+        sellingPrice: Number(sellingPrice),
+        expiryDate,
       });
-
-      const result = await res.json();
 
       if (result.success) {
         
         try{
-          const stockRes = await fetch(`${process.env.EXPO_PUBLIC_BASE_URL}/stock/update/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: result.data.id, 
-              quantity: stock || 0 
-            }),
+          const stockRes = await makeAuthenticatedRequest('/stock/update/', {
+            productId: result.data.productId,
+            quantity: stock || 0,
           });
           if(!stockRes.ok){
             console.error('Stock Update Failed:', await stockRes.text());
