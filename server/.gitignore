@@ -70,3 +70,5 @@ web_modules/
 
 # pnpm
 .pnpm-store
+
+/src/generated/prisma
