@@ -49,26 +49,33 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
 
     try {
       setSubmitting(true);
-      const result = await makeAuthenticatedRequest('/products/add/', {
+      const result = await makeAuthenticatedRequest('/products/new/', {
         name,
         purchasePrice: Number(purchasePrice),
         sellingPrice: Number(sellingPrice),
         expiryDate,
       });
 
+      console.log('Product creation result:', JSON.stringify(result));
+
       if (result.success) {
-        
-        try{
-          const stockRes = await makeAuthenticatedRequest('/stock/update/', {
-            productId: result.data.productId,
+        try {
+          console.log(
+            'Attempting stock update with productId:',
+            result.data?.id,
+            'quantity:',
+            stock
+          );
+          const stockRes = await makeAuthenticatedRequest('/stock/update', {
+            productId: result.data?.id,
             quantity: stock || 0,
           });
-          if(!stockRes.ok){
-            console.error('Stock Update Failed:', await stockRes.text());
+          console.log('Stock update result:', JSON.stringify(stockRes));
+          if (!stockRes?.success) {
+            console.error('Stock Update Failed:', stockRes?.error || 'Unknown error');
           }
         } catch (error) {
-          console.error('Stock Update Error:', error
-          )
+          console.error('Stock Update Error:', error);
         }
         setSuccess(true);
         resetForm();
@@ -86,12 +93,12 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
   };
 
   return (
-    <View className="w-full rounded-2xl bg-card border border-border p-5">
+    <View className="bg-card border-border w-full rounded-2xl border p-5">
       {/* Product Name */}
       <View className="mb-5">
-        <View className="flex-row items-center gap-2 mb-2">
+        <View className="mb-2 flex-row items-center gap-2">
           <Package size={16} color="#9ca3af" weight="bold" />
-          <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+          <Text className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             Product Name
           </Text>
         </View>
@@ -106,9 +113,9 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
 
       {/* Stock Quantity */}
       <View className="mb-5">
-        <View className="flex-row items-center gap-2 mb-2">
+        <View className="mb-2 flex-row items-center gap-2">
           <Tag size={16} color="#9ca3af" weight="bold" />
-          <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+          <Text className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             Stock Quantity
           </Text>
         </View>
@@ -123,11 +130,11 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
       </View>
 
       {/* Price Row */}
-      <View className="flex-row gap-3 mb-5">
+      <View className="mb-5 flex-row gap-3">
         <View className="flex-1">
-          <View className="flex-row items-center gap-2 mb-2">
+          <View className="mb-2 flex-row items-center gap-2">
             <Tag size={16} color="#9ca3af" weight="bold" />
-            <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+            <Text className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
               Cost Price
             </Text>
           </View>
@@ -142,9 +149,9 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
         </View>
 
         <View className="flex-1">
-          <View className="flex-row items-center gap-2 mb-2">
+          <View className="mb-2 flex-row items-center gap-2">
             <CurrencyInr size={16} color="#9ca3af" weight="bold" />
-            <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+            <Text className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
               Sell Price
             </Text>
           </View>
@@ -161,9 +168,9 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
 
       {/* Expiry Date */}
       <View className="mb-6">
-        <View className="flex-row items-center gap-2 mb-2">
+        <View className="mb-2 flex-row items-center gap-2">
           <CalendarBlank size={16} color="#9ca3af" weight="bold" />
-          <Text className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+          <Text className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             Expiry Date
           </Text>
         </View>
@@ -176,22 +183,19 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
           placeholderTextColor="#4b5563"
           className="bg-secondary border-border text-foreground"
         />
-        <Text className="text-muted-foreground text-xs mt-1.5 ml-0.5">
+        <Text className="text-muted-foreground mt-1.5 ml-0.5 text-xs">
           Type numbers only — dashes are added automatically
         </Text>
       </View>
 
       {/* Margin Preview */}
       {Number(purchasePrice) > 0 && Number(sellingPrice) > 0 && (
-        <View className="bg-secondary rounded-xl p-3 mb-5 flex-row justify-between">
+        <View className="bg-secondary mb-5 flex-row justify-between rounded-xl p-3">
           <Text className="text-muted-foreground text-xs">Profit Margin</Text>
           <Text
             className={`text-xs font-semibold ${
-              Number(sellingPrice) > Number(purchasePrice)
-                ? 'text-emerald-400'
-                : 'text-red-400'
-            }`}
-          >
+              Number(sellingPrice) > Number(purchasePrice) ? 'text-emerald-400' : 'text-red-400'
+            }`}>
             ₹{(Number(sellingPrice) - Number(purchasePrice)).toFixed(2)} per unit (
             {(
               ((Number(sellingPrice) - Number(purchasePrice)) / Number(purchasePrice)) *
@@ -206,19 +210,17 @@ const AddProductForm = ({ onSuccess }: AddProductFormProps) => {
       <Button
         onPress={handleSubmit}
         disabled={!isFormValid || submitting}
-        className={`h-12 rounded-xl ${isFormValid ? 'bg-foreground' : 'bg-muted'}`}
-      >
+        className={`h-12 rounded-xl ${isFormValid ? 'bg-foreground' : 'bg-muted'}`}>
         {submitting ? (
           <ActivityIndicator size="small" color="#888" />
         ) : success ? (
           <View className="flex-row items-center gap-2">
             <Check size={18} color="#16a34a" weight="bold" />
-            <Text className="text-green-600 font-semibold text-sm">Product Added!</Text>
+            <Text className="text-sm font-semibold text-green-600">Product Added!</Text>
           </View>
         ) : (
           <Text
-            className={`font-semibold text-sm ${isFormValid ? 'text-background' : 'text-muted-foreground'}`}
-          >
+            className={`text-sm font-semibold ${isFormValid ? 'text-background' : 'text-muted-foreground'}`}>
             Add Product
           </Text>
         )}

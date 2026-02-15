@@ -5,7 +5,13 @@ import { bentoData, getIconComponent } from '@/constants/bentoData';
 import { PeriodType } from '@/constants/chartData';
 import { makeAuthenticatedRequest } from '@/lib/authenticatedRequest';
 
-const BentoCard = ({ data }: { data: (typeof bentoData)[0] }) => {
+const BentoCard = ({
+  data,
+  fullWidth = false,
+}: {
+  data: (typeof bentoData)[0];
+  fullWidth?: boolean;
+}) => {
   const IconComponent = getIconComponent(data.icon);
   const [activePeriod, setActivePeriod] = useState<PeriodType>('monthly');
   const [loading, setLoading] = useState<boolean>(false);
@@ -52,14 +58,6 @@ const BentoCard = ({ data }: { data: (typeof bentoData)[0] }) => {
             icon: 'currency',
             accentColor: '#3b82f6', // blue
           },
-          {
-            id: 'total-udhar',
-            title: 'Total Credit',
-            value: '₹87,250',
-            subtitle: `23 customers this ${period}`,
-            icon: 'cart',
-            accentColor: '#a855f7', // purple
-          },
         ];
         cache.current[period] = sanitizedData;
         setGenData(sanitizedData);
@@ -73,7 +71,8 @@ const BentoCard = ({ data }: { data: (typeof bentoData)[0] }) => {
 
   if (loading && !cache.current[activePeriod] && !genData) {
     return (
-      <View className="bg-card border-border h-52 w-[48%] items-center justify-center rounded-2xl border p-4">
+      <View
+        className={`bg-card border-border h-52 ${fullWidth ? 'w-full' : 'w-[48%]'} items-center justify-center rounded-2xl border p-4`}>
         <ActivityIndicator size="small" color={data.accentColor} />
         <Text className="text-muted-foreground mt-2 text-xs">Loading</Text>
       </View>
@@ -81,7 +80,8 @@ const BentoCard = ({ data }: { data: (typeof bentoData)[0] }) => {
   }
 
   return (
-    <View className="bg-card border-border h-42 w-[48%] justify-between rounded-2xl border p-4">
+    <View
+      className={`bg-card border-border h-42 ${fullWidth ? 'w-full' : 'w-[48%]'} justify-between rounded-2xl border p-4`}>
       {/* Icon */}
       <View
         className="h-10 w-10 items-center justify-center rounded-xl"
@@ -128,11 +128,6 @@ const Dashboard = () => {
       <View className="mt-4 w-[92%] flex-row justify-between">
         <BentoCard data={bentoData[0]} />
         <BentoCard data={bentoData[1]} />
-      </View>
-
-      <View className="mt-4 w-[92%] flex-row justify-between">
-        <BentoCard data={bentoData[2]} />
-        <BentoCard data={bentoData[3]} />
       </View>
     </ScrollView>
   );
