@@ -1,8 +1,11 @@
 import '../global.css';
 import { Stack } from 'expo-router';
 import { PortalHost } from '@rn-primitives/portal';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useState } from 'react';
+import * as ExpoSplashScreen from 'expo-splash-screen';
+import SplashScreen from '@/components/SplashScreen';
 import {
   useFonts,
   PlayfairDisplay_400Regular,
@@ -19,7 +22,12 @@ import {
   PlayfairDisplay_900Black_Italic,
 } from '@expo-google-fonts/playfair-display';
 
+// Keep the native splash screen visible until we explicitly hide it
+ExpoSplashScreen.preventAutoHideAsync();
+
 const Layout = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_500Medium,
@@ -35,12 +43,20 @@ const Layout = () => {
     PlayfairDisplay_900Black_Italic,
   });
 
+  useEffect(() => {
+    if (fontsLoaded) {
+      // Fonts are ready — hide the native splash so our animated one takes over
+      ExpoSplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  const onSplashFinish = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
   if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    // Still loading fonts — native splash is visible, render nothing
+    return null;
   }
 
   return (
@@ -52,6 +68,7 @@ const Layout = () => {
           <Stack.Screen name="(root)" options={{ headerShown: false }} />
         </Stack>
         <PortalHost />
+        {showSplash && <SplashScreen onFinish={onSplashFinish} />}
       </View>
     </SafeAreaProvider>
   );
