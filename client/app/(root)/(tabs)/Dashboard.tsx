@@ -4,6 +4,7 @@ import SalesChart from '@/components/chart';
 import { bentoData, getIconComponent } from '@/constants/bentoData';
 import { TrendUpIcon, TrendDownIcon } from 'phosphor-react-native';
 import { PeriodType } from '@/constants/chartData';
+import { makeAuthenticatedRequest } from '@/lib/authenticatedRequest';
 
 const BentoCard = ({ data }: { data: typeof bentoData[0] }) => {
   const IconComponent = getIconComponent(data.icon);
@@ -26,10 +27,8 @@ const BentoCard = ({ data }: { data: typeof bentoData[0] }) => {
   const fetchBentoData = async (period: PeriodType) => {
     try {
       setLoading(true);
-      const resGen = await fetch(`${process.env.EXPO_PUBLIC_BASE_URL}/analytics/general?filter=${period}`);
-      const resSales = await fetch(`${process.env.EXPO_PUBLIC_BASE_URL}/analytics/sales?filter=${period}`);
-      const resultGen  = await resGen.json();
-      const resultSales = await resSales.json();
+      const resultGen  = await makeAuthenticatedRequest(`/analytics/general?filter=${period}`);
+      const resultSales  = await makeAuthenticatedRequest(`/analytics/sales?filter=${period}`);
       if (resultGen.success && resultGen.data && resultSales.success && resultSales.data) {
         const sanitizedData : typeof bentoData = [
   {

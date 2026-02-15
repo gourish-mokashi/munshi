@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import TopTabBar from '@/components/products/TopTabBar';
 import ProductsList from '@/components/products/ProductsList';
 import type { ProductCardData } from '@/components/products/ProductCard';
+import { makeAuthenticatedRequest } from '@/lib/authenticatedRequest';
 
 const TOP_TABS = [
   { key: 'products', label: 'Products' },
@@ -21,8 +22,8 @@ const Products = () => {
       setLoading(true);
 
       // Step 1: Fetch stock data (returns productId, quantity, product.name)
-      const stockRes = await fetch(`${BASE_URL}/stock/`);
-      const stockData = await stockRes.json();
+
+      const stockData = await makeAuthenticatedRequest("/stock/"); // Use authenticated request helper
 
       if (!stockData.success || !stockData.data) {
         setProducts([]);
@@ -33,8 +34,7 @@ const Products = () => {
       const productPromises = stockData.data.map(
         async (stockItem: { productId: string; quantity: number; product: { name: string } }) => {
           try {
-            const detailRes = await fetch(`${BASE_URL}/products/${stockItem.productId}`);
-            const detailData = await detailRes.json();
+            const detailData = await makeAuthenticatedRequest(`/products/${stockItem.productId}`);
 
             if (detailData.success && detailData.data) {
               const p = detailData.data;
