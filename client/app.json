@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "minimal",
-    "slug": "minimal",
+    "name": "munshi",
+    "slug": "munshi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "minimal",
+    "scheme": "munshi",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
