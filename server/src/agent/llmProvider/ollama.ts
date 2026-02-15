@@ -1,15 +1,13 @@
-import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOllama } from "ai-sdk-ollama";
 import { aisdk } from '@openai/agents-extensions';
 
-if(!process.env["CLAUDE_API_KEY"]) {
-    throw new Error("CLAUDE_API_KEY is not set in environment variables");
-}
-
-const anthropicClient = createAnthropic({
-    apiKey: process.env["CLAUDE_API_KEY"] 
+const ollamaClient = createOllama({
+    baseURL: "http://localhost:11434",
+    apiKey: 'ollama'
 });
 
-const model = aisdk(anthropicClient("claude-haiku-4-5-20251001"));
+const model = aisdk(ollamaClient("kimi-k2.5:cloud"));
+
 export default model;
 
 
