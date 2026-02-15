@@ -1,22 +1,17 @@
 // import { SocialConnections } from '@/components/social-connections';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Text } from '@/components/ui/text';
 import * as React from 'react';
 import { Pressable, TextInput, View } from 'react-native';
-import {useState} from 'react';
+import { useState } from 'react';
 import { authClient } from '@/lib/auth-client';
-import { Link, useRouter} from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useColorScheme } from 'react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 export function SignUpForm() {
   const [email, setEmail] = useState('');
@@ -24,6 +19,7 @@ export function SignUpForm() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const passwordInputRef = React.useRef<TextInput>(null);
 
@@ -79,6 +75,7 @@ export function SignUpForm() {
               <Input
                 id="name"
                 placeholder="Your name"
+                placeholderTextColor="#d1d5db"
                 autoCapitalize="words"
                 value={name}
                 onChangeText={setName}
@@ -91,6 +88,7 @@ export function SignUpForm() {
               <Input
                 id="email"
                 placeholder="m@example.com"
+                placeholderTextColor="#d1d5db"
                 keyboardType="email-address"
                 autoComplete="email"
                 autoCapitalize="none"
@@ -102,31 +100,47 @@ export function SignUpForm() {
               />
             </View>
             <View className="gap-1.5">
-              <View className="flex-row items-center">
                 <Label htmlFor="password">Password</Label>
+              <View className="relative">
+                <Input
+                  ref={passwordInputRef}
+                  id="password"
+                  placeholder="Enter your password"
+                  placeholderTextColor="#d1d5db"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                  returnKeyType="send"
+                  onSubmitEditing={onSubmit}
+                  className="pr-12"
+                />
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  className="absolute top-0 right-3 bottom-0 justify-center">
+                  {showPassword ? (
+                    <EyeOff size={20} color="#d1d5db" />
+                  ) : (
+                    <Eye size={20} color="#d1d5db" />
+                  )}
+                </Pressable>
               </View>
-              <Input
-                ref={passwordInputRef}
-                id="password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                returnKeyType="send"
-                onSubmitEditing={onSubmit}
-              />
             </View>
-            {error ? <Text className="text-red-500 text-sm text-center">{error}</Text> : null}
+            {error ? <Text className="text-center text-sm text-red-500">{error}</Text> : null}
             <Button className="w-full" disabled={loading} onPress={onSubmit}>
               <Text>{loading ? 'Creating account...' : 'Continue'}</Text>
             </Button>
           </View>
-          <Text className="text-center text-sm">
+          <Text className="text-center text-sm text-white">
             Already have an account?{' '}
             <Pressable
               onPress={() => {
                 router.push('/(auth)/Login');
               }}>
-              <Text className="text-sm underline underline-offset-4">Sign in</Text>
+              <Text
+                className="text-sm text-white underline underline-offset-4"
+                style={{ top: 4.8 }}>
+                Sign in
+              </Text>
             </Pressable>
           </Text>
         </CardContent>
